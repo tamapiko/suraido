@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スライド操作</title>
+    <style>
+        #slideContainer {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            border: 2px solid #ccc;
+        }
+        #pointer {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: red;
+            border-radius: 50%;
+        }
+        #slideUrlForm {
+            margin: 20px 0;
+        }
+        #slideUrlForm input {
+            padding: 8px;
+            width: 300px;
+        }
+        #slideUrlForm button {
+            padding: 8px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>スライド操作</h1>
+
+    <form id="slideUrlForm">
+        <label for="slideUrl">スライドのURLを入力:</label>
+        <input type="text" id="slideUrl" name="slideUrl" required />
+        <button type="submit">スライドを表示</button>
+    </form>
+
+    <div id="slideContainer">
+        <iframe id="slideIframe" src="" width="800" height="600"></iframe>
+        <div id="pointer"></div>
+    </div>
+
+    <script>
+        // スライドURLフォームの処理
+        document.getElementById("slideUrlForm").addEventListener("submit", function(event) {
+            event.preventDefault();
+            const url = document.getElementById("slideUrl").value;
+            document.getElementById("slideIframe").src = url;
+        });
+
+        // ジョイコンを接続
+        async function connectJoyCon() {
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ services: ['battery_service'] }]
+                });
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService('battery_service');
+                handlePointerMovement(device);  // モーションでポインター移動
+                handleSlideNavigation(device);  // ボタンでスライド操作
+            } catch (error) {
+                console.log('ジョイコン接続エラー:', error);
+            }
+        }
+
+        // ポインターの動きを処理
+        function handlePointerMovement(device) {
+            // 仮のモーションデータを使ってポインター移動
+            const pointerElement = document.getElementById('pointer');
+
+            // モーションセンサーからのデータを取得する処理（実際にはデバイスからのデータを使う）
+            document.addEventListener('mousemove', function(event) {
+                pointerElement.style.left = `${event.clientX - 10}px`;
+                pointerElement.style.top = `${event.clientY - 10}px`;
+            });
+        }
+
+        // スライド操作（ボタンで次のスライドや前のスライド）
+        function handleSlideNavigation(device) {
+            // 右ボタンで次のスライド、左ボタンで前のスライド
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'ArrowRight') {
+                    document.querySelector('#slideIframe').contentWindow.postMessage('next', '*');
+                } else if (event.key === 'ArrowLeft') {
+                    document.querySelector('#slideIframe').contentWindow.postMessage('prev', '*');
+                }
+            });
+        }
+
+        // ページ読み込み後にジョイコン接続を試みる
+        window.onload = function() {
+            connectJoyCon();
+        };
+    </script>
+</body>
+</html>
