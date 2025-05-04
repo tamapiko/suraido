@@ -3,28 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スライド操作</title>
+    <title>Switch ジャイロ操作</title>
     <style>
+        /* 全画面にするためのスタイル */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
         #slideContainer {
             position: relative;
-            width: 800px;
-            height: 600px;
-            border: 2px solid #ccc;
+            width: 100%;
+            height: 100%;
         }
+
+        #slideIframe {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
         #pointer {
             position: absolute;
             width: 20px;
             height: 20px;
             background-color: red;
             border-radius: 50%;
+            pointer-events: none; /* ポインター自体が操作の邪魔をしないように */
         }
+
         #slideUrlForm {
-            margin: 20px 0;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 100;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
         }
+
         #slideUrlForm input {
             padding: 8px;
             width: 300px;
         }
+
         #slideUrlForm button {
             padding: 8px;
             cursor: pointer;
@@ -32,7 +57,7 @@
     </style>
 </head>
 <body>
-    <h1>スライド操作</h1>
+    <h1 style="text-align: center; color: white;">スライド操作</h1>
 
     <form id="slideUrlForm">
         <label for="slideUrl">スライドのURLを入力:</label>
@@ -41,7 +66,7 @@
     </form>
 
     <div id="slideContainer">
-        <iframe id="slideIframe" src="" width="800" height="600"></iframe>
+        <iframe id="slideIframe" src="" frameborder="0"></iframe>
         <div id="pointer"></div>
     </div>
 
@@ -53,7 +78,7 @@
             document.getElementById("slideIframe").src = url;
         });
 
-        // ジョイコンを接続
+        // ジョイコンの接続と処理
         async function connectJoyCon() {
             try {
                 const device = await navigator.bluetooth.requestDevice({
@@ -61,23 +86,44 @@
                 });
                 const server = await device.gatt.connect();
                 const service = await server.getPrimaryService('battery_service');
-                handlePointerMovement(device);  // モーションでポインター移動
+                handleGyroMovement(device);  // ジャイロ操作を使用してポインター移動
                 handleSlideNavigation(device);  // ボタンでスライド操作
             } catch (error) {
                 console.log('ジョイコン接続エラー:', error);
             }
         }
 
-        // ポインターの動きを処理
-        function handlePointerMovement(device) {
-            // 仮のモーションデータを使ってポインター移動
+        // ジャイロセンサーを使ってポインターを動かす処理
+        function handleGyroMovement(device) {
             const pointerElement = document.getElementById('pointer');
+            let gyroData = { x: 0, y: 0 };
+            let isRButtonPressed = false;  // Rボタンが押されたかどうか
 
-            // モーションセンサーからのデータを取得する処理（実際にはデバイスからのデータを使う）
-            document.addEventListener('mousemove', function(event) {
-                pointerElement.style.left = `${event.clientX - 10}px`;
-                pointerElement.style.top = `${event.clientY - 10}px`;
+            // Rボタンが押されたかどうかを監視
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'r' || event.key === 'R') {
+                    isRButtonPressed = true;  // Rボタンが押された
+                }
             });
+
+            document.addEventListener('keyup', function(event) {
+                if (event.key === 'r' || event.key === 'R') {
+                    isRButtonPressed = false;  // Rボタンが離された
+                }
+            });
+
+            // 仮のジャイロデータでポインターを動かす処理（Rボタンが押されているときのみ動く）
+            setInterval(() => {
+                if (isRButtonPressed) {
+                    // 仮の加速度やジャイロデータ（実際はデバイスから取得したデータに基づいて処理します）
+                    gyroData.x += 1;  // X軸の移動量
+                    gyroData.y += 1;  // Y軸の移動量
+
+                    // 画面上にポインターを移動させる
+                    pointerElement.style.left = `${gyroData.x % window.innerWidth}px`;
+                    pointerElement.style.top = `${gyroData.y % window.innerHeight}px`;
+                }
+            }, 50);
         }
 
         // スライド操作（ボタンで次のスライドや前のスライド）
